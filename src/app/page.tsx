@@ -10,10 +10,22 @@ export default function Home() {
         </h1>
         <p>Your go to invoice maker, select template to continue.</p>
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 w-full gap-4">
-          <InvoiceTemplateCard />
-          <InvoiceTemplateCard />
-          <InvoiceTemplateCard />
-          <InvoiceTemplateCard />
+          <InvoiceTemplateCard title="Template 1" link="template_1" />
+          <InvoiceTemplateCard
+            title="Template 1"
+            link="template_2"
+            comingSoon={true}
+          />
+          <InvoiceTemplateCard
+            title="Template 1"
+            link="template_3"
+            comingSoon={true}
+          />
+          <InvoiceTemplateCard
+            title="Template 1"
+            link="template_4"
+            comingSoon={true}
+          />
         </div>
       </div>
     </main>
