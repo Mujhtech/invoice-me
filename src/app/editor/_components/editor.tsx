@@ -116,6 +116,10 @@ export default function Editor({
   const invoiceMutation = trpc.invoice.create.useMutation();
 
   const onSaved = async () => {
+    if (invoices.length === 0 || !client || !information) {
+      return;
+    }
+
     startTransition(async () => {
       try {
         toast.loading("Saving invoice...", {
