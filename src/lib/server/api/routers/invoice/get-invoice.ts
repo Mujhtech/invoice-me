@@ -42,12 +42,14 @@ export const getInvoice = t.procedure
         | "template_2"
         | "template_3"
         | "template_4",
+
       items: items.map((item) => ({
         ...item,
         price: parseFloat(item.price),
         tax: parseFloat(item.tax),
         discount: parseFloat(item.discount),
         totalAmount: parseFloat(item.price) * item.quantity,
+
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
         deletedAt: item.deletedAt,

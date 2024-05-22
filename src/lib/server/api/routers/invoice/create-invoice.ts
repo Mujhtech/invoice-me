@@ -61,12 +61,12 @@ export const createInvoice = t.procedure
       title: input.title,
       invoiceNumber: input.invoiceNumber,
       currency: input.currency,
-      startDate: input.startDate,
-      endDate: input.endDate,
+      startDate: input.startDate.toString(),
+      endDate: input.endDate.toString(),
       invoiceClientId: clientId,
       invoiceUserId: userId,
-      status: input.status,
-      template: input.template,
+      status: input.status as "created" | "drafted" | "paid",
+      template: input.template.toString(),
       memo: input.memo,
     });
 
@@ -78,10 +78,10 @@ export const createInvoice = t.procedure
           id: itemId,
           invoiceId: invoiceId,
           title: item.title,
-          price: item.price,
+          price: item.price.toString(),
           quantity: item.quantity,
-          discount: item.discount,
-          tax: item.tax,
+          discount: item.discount.toString(),
+          tax: item.tax.toString(),
         });
       })
     );

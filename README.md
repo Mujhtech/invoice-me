@@ -31,11 +31,11 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 Create migration
 
 ```bash
-pnpm run drizzle:generate
+pnpm run db:generate
 ```
 
 Migrate to production/developement database server
 
 ```bash
-pnpm run drizzle:push
+pnpm run db:push
 ```

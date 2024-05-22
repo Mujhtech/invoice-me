@@ -30,7 +30,6 @@ export const invoices = pgTable("invoices", {
   status: invoiceStatus("status").notNull().default("created"),
   invoiceClientId: text("invoiceClientId").references(() => invoiceClients.id),
   invoiceUserId: text("invoiceUserId").references(() => invoiceUsers.id),
-
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),
   deletedAt: timestamp("deletedAt"),
@@ -49,7 +48,6 @@ export const invoiceUsers = pgTable("invoice_users", {
   phoneNumber: text("phoneNumber"),
   country: text("country").notNull(),
   companyName: text("companyName"),
-
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),
   deletedAt: timestamp("deletedAt"),
