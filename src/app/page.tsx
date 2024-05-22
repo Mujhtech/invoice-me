@@ -8,21 +8,23 @@ export default function Home() {
         <h1 className="text-3xl sm:text-5xl md:text-7xl font-geist-sans font-black">
           Invoice Me
         </h1>
-        <p>Your go to invoice maker, select template to continue.</p>
+        <p>
+          Create, Update, Share invoice on the go, select template to continue.
+        </p>
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 w-full gap-4">
           <InvoiceTemplateCard title="Template 1" link="template_1" />
           <InvoiceTemplateCard
-            title="Template 1"
+            title="Template 2"
             link="template_2"
             comingSoon={true}
           />
           <InvoiceTemplateCard
-            title="Template 1"
+            title="Template 3"
             link="template_3"
             comingSoon={true}
           />
           <InvoiceTemplateCard
-            title="Template 1"
+            title="Template 4"
             link="template_4"
             comingSoon={true}
           />

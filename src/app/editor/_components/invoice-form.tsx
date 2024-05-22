@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Dialog,
   DialogContent,
@@ -36,7 +34,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
 export const invoiceFormSchema = z.object({
-  title: z.string(),
+  invoiceNumber: z.string(),
   issueDate: z.date(),
   dueDate: z.date(),
 });
@@ -91,7 +89,7 @@ export default function InvoiceForm({
           >
             <FormField
               control={form.control}
-              name="title"
+              name="invoiceNumber"
               render={({ field }) => (
                 <FormItem className="sm:col-span-6">
                   <FormLabel>No</FormLabel>
@@ -197,7 +195,7 @@ export default function InvoiceForm({
             />
 
             <div className="mt-2 sm:col-span-6 flex justify-end">
-              <Button type="submit">Save</Button>
+              <Button type="submit">Continue</Button>
             </div>
           </form>
         </Form>

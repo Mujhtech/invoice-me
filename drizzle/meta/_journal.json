@@ -1,0 +1,27 @@
+{
+  "version": "6",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1716355466079,
+      "tag": "0000_perpetual_russian",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1716355790281,
+      "tag": "0001_broad_silvermane",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1716356980448,
+      "tag": "0002_elite_switch",
+      "breakpoints": true
+    }
+  ]
+}

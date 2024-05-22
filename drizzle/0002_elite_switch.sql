@@ -1,0 +1,1 @@
+ALTER TABLE "invoice_items" ADD COLUMN "quantity" bigint DEFAULT 1 NOT NULL;

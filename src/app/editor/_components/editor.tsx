@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
-import React from "react";
+import { Check, ChevronsUpDown, Plus, Trash, X } from "lucide-react";
+import React, { useState, useTransition } from "react";
 import {
   Table,
   TableBody,
@@ -14,14 +14,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import ClientForm, { clientFormSchema } from "./client-form";
-import InformationForm, { informationFormSchema } from "./information-form";
+import ClientForm from "./client-form";
+import InformationForm from "./information-form";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -32,315 +33,257 @@ import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { format } from "date-fns";
 import InvoiceForm, { invoiceFormSchema } from "./invoice-form";
+import { formatCurrency } from "@/lib/currency";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import {
+  Invoice,
+  InvoiceItem,
+  InvoiceUserOrClient,
+} from "@/lib/server/api/routers/type";
+import { useRouter } from "next/navigation";
+import { trpc } from "@/lib/server/api/client";
+import { ModeToggle } from "@/components/mode-toggle";
+import TemplateOne from "./_templates/template-one";
 
 const supportedCurrencies = [
   {
     name: "Nigeria Naira",
     code: "NGN",
   },
+  {
+    name: "United States Dollar",
+    code: "USD",
+  },
+  {
+    name: "Europeans Euro",
+    code: "EUR",
+  },
 ];
 
-export default function Editor() {
-  const [invoices, setInvoices] = React.useState([
-    {
-      description: "",
-      unit: 1,
-      unitPrice: 100,
-      unitTax: 10,
-      unitDiscount: 0,
-      totalAmount: 110,
-    },
-  ]);
-  const [client, setClient] = React.useState<
-    z.infer<typeof clientFormSchema> | null | undefined
-  >(undefined);
+export default function Editor({
+  data,
+  editorMode,
+}: {
+  data?: Invoice & {
+    items: InvoiceItem[];
+    client: InvoiceUserOrClient;
+    user: InvoiceUserOrClient;
+  };
+  editorMode: boolean;
+}) {
+  const router = useRouter();
+  const [invoices, setInvoices] = useState(
+    data?.items ?? [
+      {
+        title: "",
+        quantity: 1,
+        price: 0,
+        tax: 0,
+        totalAmount: 0,
+        discount: 0,
+        amount: 0,
+      },
+    ]
+  );
+  const [client, setClient] = useState<InvoiceUserOrClient | null | undefined>(
+    data?.client || null
+  );
 
-  const [information, setInformation] = React.useState<
-    z.infer<typeof informationFormSchema> | null | undefined
-  >(undefined);
+  const [information, setInformation] = useState<
+    InvoiceUserOrClient | null | undefined
+  >(data?.user || null);
 
-  const [invoice, setInvoiceDetail] = React.useState<
+  const [invoice, setInvoiceDetail] = useState<
     z.infer<typeof invoiceFormSchema>
   >({
-    title: "1",
-    issueDate: new Date(),
-    dueDate: new Date(),
+    invoiceNumber: data?.invoiceNumber ?? "1",
+    issueDate: data?.startDate ?? new Date(),
+    dueDate: data?.endDate ?? new Date(),
   });
 
-  const [currency, setCurrency] = React.useState<string>("USD");
+  const [invoiceTitle, setInvoiceTitle] = useState<string>(
+    data?.title ?? " Untitled"
+  );
+
+  const [memo, setMemo] = useState<string>(data?.memo ?? " ");
+
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const [currency, setCurrency] = useState<string>(data?.currency ?? "USD");
+
+  const invoiceMutation = trpc.invoice.create.useMutation();
+
+  const onSaved = async () => {
+    startTransition(async () => {
+      try {
+        toast.loading("Saving invoice...", {
+          duration: 2000,
+        });
+        const data = await invoiceMutation.mutateAsync({
+          title: invoiceTitle,
+          invoiceNumber: invoice.invoiceNumber,
+          endDate: invoice.dueDate,
+          startDate: invoice.issueDate,
+          status: "created",
+
+          currency: currency,
+          template: "template_1",
+          memo: memo,
+          user: information!,
+          client: client!,
+          items: invoices.map((inv) => ({
+            title: inv.title ?? "",
+            price: inv.price,
+            quantity: inv.quantity,
+            discount: inv.discount,
+            tax: inv.tax,
+          })),
+        });
+        toast.success("Invoice saved!!!");
+        router.push(`/editor/${data.id}`);
+      } catch (err: any) {
+        throw err;
+      }
+    });
+  };
 
   return (
     <main className="h-full max-h-full overflow-hidden">
       <header className="bg-background py-4 px-4 z-10 top-0 fixed w-full">
         <div className="w-full flex justify-between items-center">
-          <div>
+          <div className="flex">
             <Button
+              onClick={() => {
+                router.push("/");
+              }}
               variant="outline"
               className="rounded-full !h-8 !w-8 !py-0 !px-0 !p-2"
             >
               <X />
             </Button>
           </div>
+          <div className="flex-1 flex-row justify-center items-center">
+            <div className="flex flex-row justify-center items-center">
+              <h1
+                onClick={() => {
+                  if (editorMode) {
+                    setIsEditingTitle(true);
+                  }
+                }}
+                className={cn(
+                  "font-geist-sans text-center text-3xl font-black text-muted-foreground",
+                  isEditingTitle && editorMode && "hidden"
+                )}
+              >
+                {invoiceTitle}
+              </h1>
+              {editorMode && (
+                <input
+                  type="text"
+                  placeholder=""
+                  defaultValue={invoiceTitle}
+                  onChange={(e) => setInvoiceTitle(e.target.value)}
+                  onBlur={() => setIsEditingTitle(false)}
+                  className={cn(
+                    "text-3xl font-geist-sans text-center font-black ring-offset-0 ring-offset-transparent text-muted-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0",
+                    isEditingTitle ? "block" : "hidden"
+                  )}
+                />
+              )}
+            </div>
+          </div>
           <div className="flex gap-2">
-            <Button variant="secondary">Save</Button>
-            <Button variant="secondary">Share</Button>
+            <ModeToggle />
+            {editorMode && (
+              <Button
+                onClick={() => onSaved()}
+                variant="secondary"
+                disabled={isPending}
+              >
+                Save
+              </Button>
+            )}
+            <Button variant="secondary" disabled={isPending}>
+              Share
+            </Button>
           </div>
         </div>
       </header>
       <section className="max-w-5xl h-full mx-auto overflow-y-auto">
         <div className="mt-24 relative flex flex-row">
-          <div className="pb-10 max-w-[820px] w-full ">
-            <div className="w-full bg-background border-primary border">
-              <div className="border-primary border-b border-dotted">
-                <div className="pt-8 px-8 pb-4 flex flex-col">
-                  <div className="flex justify-end">
-                    <h3 className="text-md font-geist-sans font-bold">
-                      Invoice
-                    </h3>
-                  </div>
-                  <div className="flex justify-between">
-                    <div className="flex flex-col gap-1 items-start">
-                      <div className="flex gap-2 items-center">
-                        <h3 className="text-sm font-geist-sans font-bold">
-                          From
-                        </h3>
-                        <InformationForm
-                          defaultValues={information}
-                          onFormSubmit={(value) => {
-                            setInformation(value);
-                          }}
-                        />
-                      </div>
-                      {information && (
-                        <>
-                          <p className="text-xs">
-                            {information.firstname} {information.lastname}
-                          </p>
-                          <p className="text-xs">{information.address1}</p>
-                          {information.address2 && (
-                            <p className="text-xs">{information.address2}</p>
-                          )}
-                          <p className="text-xs">
-                            {information.city} {information.state}{" "}
-                            {information.postalCode}
-                          </p>
-                          <p className="text-xs">{information.country}</p>
-                          <p className="text-xs">{information.email}</p>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1 items-end">
-                      <div className="flex items-center gap-1">
-                        <InvoiceForm
-                          defaultValues={invoice}
-                          onFormSubmit={(value) => {
-                            setInvoiceDetail(value);
-                          }}
-                        />
-                        <p className="text-xs">Invoice #{invoice.title}</p>
-                      </div>
-                      <p className="text-xs">
-                        Issued on {format(invoice.issueDate, "PPP")}
-                      </p>
-                      <p className="text-xs">
-                        Payment due on {format(invoice.dueDate, "PPP")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex justify-between">
-                    <div className="flex flex-col gap-1 items-start">
-                      <div className="flex gap-2 items-center">
-                        <h3 className="text-sm font-geist-sans font-bold">
-                          Billed To
-                        </h3>
-                        <ClientForm
-                          defaultValues={client}
-                          onFormSubmit={(value) => {
-                            setClient(value);
-                          }}
-                        />
-                      </div>
-                      {client && (
-                        <>
-                          <p className="text-xs">
-                            {client.firstname} {client.lastname}
-                          </p>
-                          <p className="text-xs">{client.address1}</p>
-                          {client.address2 && (
-                            <p className="text-xs">{client.address2}</p>
-                          )}
-                          <p className="text-xs">
-                            {client.city} {client.state} {client.postalCode}
-                          </p>
-                          <p className="text-xs">{client.country}</p>
-                          <p className="text-xs">{client.email}</p>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1 items-end"></div>
-                  </div>
-                </div>
-              </div>
-              <div className="border-primary border-b border-dotted">
-                <div className="pt-4 px-8 pb-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="text-xs font-geist-sans">
-                        <TableHead>Description</TableHead>
-                        <TableHead>Qty</TableHead>
-                        <TableHead>Unit Price</TableHead>
-                        <TableHead>Discount</TableHead>
-                        <TableHead>Tax</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {invoices.map((invoice, key) => (
-                        <TableRow key={key}>
-                          <TableCell className="min-w-[200px] max-w-[200px]">
-                            <Input defaultValue={invoice.description} />
-                          </TableCell>
-                          <TableCell>
-                            <Input defaultValue={invoice.unit} type="number" />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              defaultValue={invoice.unitPrice}
-                              type="number"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              defaultValue={invoice.unitDiscount}
-                              type="number"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              defaultValue={invoice.unitTax}
-                              type="number"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {invoice.totalAmount}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      <TableRow className="!border-none font-geist-sans">
-                        <TableCell colSpan={6}>
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setInvoices([
-                                ...invoices,
-                                {
-                                  description: "",
-                                  unit: 1,
-                                  unitPrice: 0,
-                                  unitTax: 0,
-                                  unitDiscount: 0,
-                                  totalAmount: 0,
-                                },
-                              ]);
-                            }}
-                            className="!text-xs !h-5 !bg-transparent ring-offset-background  focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                          >
-                            <Plus className="w-4 h-4 mr-1" /> Add Item
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                      <TableRow className="!border-none font-geist-sans">
-                        <TableCell colSpan={3}></TableCell>
-                        <TableCell className="border-b" colSpan={2}>
-                          Amount
-                        </TableCell>
-                        <TableCell className="border-b text-right">
-                          000
-                        </TableCell>
-                      </TableRow>
-                      <TableRow className="!border-none font-geist-sans">
-                        <TableCell colSpan={3}></TableCell>
-                        <TableCell className="border-b" colSpan={2}>
-                          Tax Amount
-                        </TableCell>
-                        <TableCell className="border-b text-right">
-                          000
-                        </TableCell>
-                      </TableRow>
-                      <TableRow className="!border-none font-geist-sans">
-                        <TableCell colSpan={3}></TableCell>
-                        <TableCell className="border-b" colSpan={2}>
-                          Total Amount
-                        </TableCell>
-                        <TableCell className="border-b text-right">
-                          000
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-              <div className="">
-                <div className="pt-8 px-8 pb-4"></div>
-              </div>
-            </div>
-          </div>
-          <div className="ml-8 max-w-[300px]">
-            <div className="bg-background fixed min-w-[280px] p-4 border border-primary">
-              <div className="flex flex-col">
-                <h3>Settings</h3>
+          <TemplateOne
+            client={client}
+            information={information}
+            invoice={invoice}
+            items={invoices}
+            memo={memo}
+            currency={currency}
+            updateMemo={setMemo}
+            updateInformation={(value) => setInformation(value)}
+            updateInvoice={(value) => setInvoiceDetail(value)}
+            updateClient={(value) => setClient(value)}
+            updateItems={(value) => setInvoices(value)}
+            editorMode={editorMode}
+          />
+          {editorMode && (
+            <div className="ml-8 max-w-[300px]">
+              <div className="bg-background fixed min-w-[280px] p-4 border border-primary">
+                <div className="flex flex-col">
+                  <h3>Settings</h3>
 
-                <div className="mt-6 flex flex-col">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          "h-10 w-full justify-between",
-                          !currency && "text-muted-foreground"
-                        )}
-                      >
-                        {currency != null ? currency : "Select currency"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Select a currency..." />
-                        <CommandEmpty>No currency found.</CommandEmpty>
-                        <CommandGroup className="max-h-[150px] overflow-y-scroll">
-                          {supportedCurrencies.map((cur) => {
-                            const isSelected =
-                              currency != null && currency == cur.code
-                                ? true
-                                : false;
-                            return (
-                              <CommandItem
-                                value={cur.code}
-                                key={cur.code}
-                                onSelect={() => {
-                                  setCurrency(cur.code);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    isSelected ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {cur.name}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <div className="mt-6 flex flex-col">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className="justify-between"
+                        >
+                          {currency
+                            ? supportedCurrencies.find(
+                                (cur) => cur.code === currency
+                              )?.name
+                            : "Select currency..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0">
+                        <Command>
+                          <CommandInput placeholder="Search currency..." />
+                          <CommandList>
+                            <CommandEmpty>No currency found.</CommandEmpty>
+                            <CommandGroup>
+                              {supportedCurrencies.map((cur) => (
+                                <CommandItem
+                                  key={cur.code}
+                                  value={cur.code}
+                                  onSelect={(currentValue) => {
+                                    setCurrency(cur.code);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      currency === cur.code
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {cur.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
     </main>

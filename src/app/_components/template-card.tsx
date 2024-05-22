@@ -16,7 +16,7 @@ export default function InvoiceTemplateCard({
 }) {
   return (
     <Link
-      href={`/editor?${link}`}
+      href={`/editor?template=${link}`}
       className={cn(comingSoon && "pointer-events-none")}
     >
       <Card className="bg-primary shadow-md rounded-2xl">

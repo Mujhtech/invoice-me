@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Dialog,
   DialogContent,
@@ -25,36 +23,29 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  InvoiceUserOrClient,
+  InvoiceUserOrClientSchema,
+} from "@/lib/server/api/routers/type";
 
-export const clientFormSchema = z.object({
-  email: z.string(),
-  firstname: z.string(),
-  lastname: z.string(),
-  company_name: z.string(),
-  state: z.string(),
-  city: z.string(),
-  postalCode: z.string(),
-  address1: z.string(),
-  address2: z.string().optional(),
-  country: z.string(),
-});
+type ClientFormProps = {
+  defaultValues?: InvoiceUserOrClient | null;
+  onFormSubmit: (values: InvoiceUserOrClient) => void;
+};
 
 export default function ClientForm({
   defaultValues,
   onFormSubmit,
-}: {
-  defaultValues?: z.infer<typeof clientFormSchema> | null;
-  onFormSubmit: (values: z.infer<typeof clientFormSchema>) => void;
-}) {
+}: ClientFormProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const form = useForm<z.infer<typeof clientFormSchema>>({
-    resolver: zodResolver(clientFormSchema),
+  const form = useForm<InvoiceUserOrClient>({
+    resolver: zodResolver(InvoiceUserOrClientSchema),
     defaultValues: defaultValues || {},
   });
 
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof clientFormSchema>) {
+  function onSubmit(values: InvoiceUserOrClient) {
     onFormSubmit(values);
     setIsOpen(false);
     form.reset();
@@ -118,7 +109,7 @@ export default function ClientForm({
             />
             <FormField
               control={form.control}
-              name="company_name"
+              name="companyName"
               render={({ field }) => (
                 <FormItem className="sm:col-span-6">
                   <FormLabel>Company Name</FormLabel>
@@ -174,7 +165,7 @@ export default function ClientForm({
             />
             <FormField
               control={form.control}
-              name="address1"
+              name="address"
               render={({ field }) => (
                 <FormItem className="sm:col-span-3">
                   <FormLabel>Address 1</FormLabel>
@@ -216,7 +207,7 @@ export default function ClientForm({
             />
 
             <div className="mt-2 sm:col-span-6 flex justify-end">
-              <Button type="submit">Save</Button>
+              <Button type="submit">Continue</Button>
             </div>
           </form>
         </Form>
